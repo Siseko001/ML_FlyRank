@@ -1,0 +1,489 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Which page should you fix first? A CTR-opportunity study</title>
+<meta name="description" content="A transparent scoring rule beat a trained model at ranking underperforming pages for review — an honest, reproducible comparison from the FlyRank ML internship.">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Source+Serif+4:ital,opsz,wght@0,8..60,400;0,8..60,600;0,8..60,700;1,8..60,400&family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+<style>
+  :root {
+    --paper: #FAF9F6;
+    --ink: #1C1F26;
+    --muted: #5B5F6B;
+    --rule: #DDD8CC;
+    --teal: #2F6F6B;
+    --teal-dim: #E4EEED;
+    --rust: #B8622E;
+    --rust-dim: #F5E7DC;
+  }
+
+  * { box-sizing: border-box; }
+
+  html { scroll-behavior: smooth; max-width: 100%; overflow-x: hidden; }
+
+  body {
+    margin: 0;
+    background: var(--paper);
+    color: var(--ink);
+    font-family: "Inter", -apple-system, BlinkMacSystemFont, sans-serif;
+    font-size: 17px;
+    line-height: 1.6;
+    overflow-wrap: break-word;
+    max-width: 100%;
+    overflow-x: hidden;
+  }
+
+  ::selection { background: var(--teal-dim); }
+
+  a { color: var(--teal); text-decoration-thickness: 1px; text-underline-offset: 2px; }
+  a:hover { color: var(--rust); }
+
+  a:focus-visible, button:focus-visible {
+    outline: 2px solid var(--teal);
+    outline-offset: 2px;
+  }
+
+  h1, h2, h3 {
+    font-family: "Source Serif 4", Georgia, serif;
+    font-weight: 600;
+    line-height: 1.2;
+    color: var(--ink);
+  }
+
+  .wrap {
+    max-width: 700px;
+    margin: 0 auto;
+    padding: 0 24px;
+  }
+
+  .wide {
+    max-width: 860px;
+  }
+
+  /* ---------- Masthead ---------- */
+
+  header.masthead {
+    border-bottom: 1px solid var(--rule);
+    padding: 64px 0 40px;
+  }
+
+  @media (prefers-reduced-motion: no-preference) {
+    header.masthead { animation: rise 0.7s ease-out; }
+    @keyframes rise {
+      from { opacity: 0; transform: translateY(8px); }
+      to { opacity: 1; transform: translateY(0); }
+    }
+  }
+
+  .kicker {
+    font-size: 15px;
+    color: var(--muted);
+    margin: 0 0 18px;
+  }
+
+  h1.title {
+    font-size: 40px;
+    margin: 0 0 20px;
+    max-width: 16ch;
+  }
+
+  .dek {
+    font-size: 20px;
+    color: var(--muted);
+    max-width: 460px;
+    margin: 0 0 32px;
+    font-family: "Source Serif 4", Georgia, serif;
+    font-style: italic;
+  }
+
+  .stat-ledger {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 28px 40px;
+    border-top: 1px solid var(--rule);
+    padding-top: 22px;
+  }
+
+  .stat {
+    min-width: 120px;
+  }
+
+  .stat .n {
+    font-family: "Source Serif 4", Georgia, serif;
+    font-size: 26px;
+    font-weight: 700;
+    color: var(--teal);
+    display: block;
+  }
+
+  .stat .l {
+    font-size: 13px;
+    color: var(--muted);
+  }
+
+  /* ---------- Sections ---------- */
+
+  section {
+    padding: 48px 0;
+    border-bottom: 1px solid var(--rule);
+  }
+
+  section:last-of-type { border-bottom: none; }
+
+  h2 {
+    font-size: 26px;
+    margin: 0 0 20px;
+  }
+
+  h3 {
+    font-size: 19px;
+    margin: 28px 0 10px;
+  }
+
+  p { margin: 0 0 16px; }
+
+  .scenario {
+    border-left: 3px solid var(--teal);
+    padding: 4px 0 4px 20px;
+    margin: 0 0 24px;
+    color: var(--muted);
+    font-family: "Source Serif 4", Georgia, serif;
+    font-size: 18px;
+    font-style: italic;
+  }
+
+  figure {
+    margin: 28px 0;
+  }
+
+  figure img {
+    width: 100%;
+    height: auto;
+    border: 1px solid var(--rule);
+    border-radius: 2px;
+  }
+
+  figcaption {
+    font-size: 14px;
+    color: var(--muted);
+    margin-top: 10px;
+  }
+
+  .table-scroll {
+    overflow-x: auto;
+    -webkit-overflow-scrolling: touch;
+  }
+
+  table {
+    width: 100%;
+    border-collapse: collapse;
+    margin: 20px 0;
+    font-size: 15px;
+    min-width: 480px;
+  }
+
+  th, td {
+    text-align: left;
+    padding: 9px 12px;
+    border-bottom: 1px solid var(--rule);
+  }
+
+  th {
+    font-weight: 600;
+    color: var(--muted);
+    font-size: 13px;
+  }
+
+  td.num, th.num { text-align: right; font-variant-numeric: tabular-nums; }
+
+  tr.highlight td { background: var(--teal-dim); font-weight: 600; }
+
+  .callout {
+    background: var(--rust-dim);
+    border: 1px solid #E4C6AB;
+    border-radius: 3px;
+    padding: 18px 22px;
+    margin: 24px 0;
+  }
+
+  .callout h3 { margin-top: 0; color: var(--rust); font-size: 17px; }
+
+  ol.recs, ul.limits {
+    padding-left: 22px;
+    margin: 0 0 16px;
+  }
+
+  ol.recs li, ul.limits li {
+    margin-bottom: 12px;
+  }
+
+  code {
+    background: var(--teal-dim);
+    padding: 1px 5px;
+    border-radius: 2px;
+    font-size: 0.88em;
+  }
+
+  footer {
+    padding: 40px 0 80px;
+  }
+
+  footer p { color: var(--muted); font-size: 14px; }
+
+  @media (max-width: 600px) {
+    body { font-size: 16px; }
+    h1.title { font-size: 32px; }
+    .dek { font-size: 18px; }
+    header.masthead { padding: 40px 0 32px; }
+    section { padding: 36px 0; }
+  }
+</style>
+</head>
+<body>
+
+<header class="masthead">
+  <div class="wrap">
+    <p class="kicker">FlyRank AI Internship — Applied ML Capstone</p>
+    <h1 class="title">Which page should you fix first?</h1>
+    <p class="dek">A transparent scoring rule beat a trained model at ranking underperforming
+      pages for review — and the honest comparison is more useful than the win.</p>
+    <div class="stat-ledger">
+      <div class="stat"><span class="n">12,023</span><span class="l">visible pages scored</span></div>
+      <div class="stat"><span class="n">43</span><span class="l">pre-outcome features</span></div>
+      <div class="stat"><span class="n">0.25</span><span class="l">rule precision@20</span></div>
+      <div class="stat"><span class="n">0.00</span><span class="l">model precision@20</span></div>
+    </div>
+  </div>
+</header>
+
+<main>
+
+  <section id="abstract">
+    <div class="wrap">
+      <h2>Abstract</h2>
+      <p>Which already-visible pages should a content team review first to close a click-through
+        gap, and can that decision be safely handed to a machine-learning model instead of a plain
+        rule? Using FlyRank's anonymized 30,000-page starter export, 12,023 pages were visible
+        enough to judge — at least 500 impressions in 90 days and a top-20 ranking — split so no
+        single client's pages appeared in both training and test. A transparent rule (how far a
+        page's click-through rate sits below its position tier's median, scaled by impression
+        volume) was compared against a logistic regression and a random forest trained on the same
+        twenty-five pre-outcome features, all scored on the same held-out clients. The rule won at
+        every cutoff checked, while both models scored below what picking pages at random would
+        give — their most confident picks were exactly the pages an independent engagement check is
+        built to exclude. This queue is meant to set a content team's weekly review order, not to
+        guarantee a click count, rewrite copy on its own, or judge who wrote a page.</p>
+    </div>
+  </section>
+
+  <section id="intro">
+    <div class="wrap">
+      <h2>The problem</h2>
+      <p class="scenario">A content lead opens the search console dashboard on a Monday morning.
+        Forty of their pages rank in the top twenty for keywords they care about, but a chunk of
+        them barely earn a click despite the good position. There's time to review three or four
+        pages this week. Which ones?</p>
+      <p>Picking by gut feeling means falling back on whichever page was mentioned in last week's
+        meeting. Picking by raw impressions rewards big pages regardless of whether they're actually
+        underperforming. The question this project set out to answer: can a page's own metrics —
+        without knowing anything about the writer, the topic, or this quarter's click-through rate
+        result — reliably flag which pages are worth a look first, and is a fitted model needed to
+        do that, or does a rule you can read in one sentence already do the job?</p>
+    </div>
+  </section>
+
+  <section id="data">
+    <div class="wrap">
+      <h2>Data</h2>
+      <p>The source is FlyRank's anonymized starter CSV: 30,000 content pieces, 44 columns,
+        pseudonymous <code>content_id</code>/<code>client_id</code> hashes — no client names,
+        URLs, or raw search queries anywhere. Metrics are trailing 90-day windows (impressions,
+        clicks, sessions); the export carries no absolute dates.</p>
+      <p>The eligible pool for this study is pages with at least 500 impressions in 90 days and a
+        position between 1 and 20 — visible enough that a click-through problem is worth a content
+        team's time to fix. That's 12,023 of the 30,000 pages (40%); the rest are either too low-
+        volume to judge reliably or ranked too far down the results page to matter yet.</p>
+      <p>Excluded from every feature set, and checked for programmatically rather than taken on
+        faith: <code>ctr</code> and <code>clicks_90d</code> (the outcome itself), <code>trend_direction</code>/
+        <code>trend_pct</code> and the 30-day windows that build them (future and overlapping-window
+        leakage), and <code>provider_used</code>/<code>model_used</code> (marked non-features in
+        FlyRank's own data dictionary).</p>
+    </div>
+  </section>
+
+  <section id="methodology">
+    <div class="wrap">
+      <h2>Methodology</h2>
+      <h3>Label</h3>
+      <p>A page is an "opportunity" if its click-through rate sits below the median CTR of other
+        pages in its own position tier (top 3 / page 1 / striking distance) — judged against fair
+        peers, not the whole pool, since position alone moves CTR substantially.</p>
+      <h3>The baseline rule</h3>
+      <p><code>score = (tier median CTR − page CTR) × impressions, 90 days</code> — read directly
+        as an estimated number of clicks a page is leaving on the table relative to its peers. Every
+        row also carries reason codes (a well-ranked page not converting clicks, high volume, or a
+        second signal — weak on-page engagement — pointing the same way), so a reviewer can see
+        why a page is on the list, not just its score.</p>
+      <h3>Features</h3>
+      <p>Twenty-five fields knowable before this quarter's CTR result: content metadata (word
+        count, age, freshness, intent) and prior traffic behavior (sessions, engagement, scroll
+        activity). Fields with real, patterned missingness got a <code>has_&lt;field&gt;</code> flag
+        before being filled — content type predicts which fields go missing, so filling blindly
+        would have quietly turned "is this a certain content type" into a feature.</p>
+      <h3>Validation design</h3>
+      <p>Every split in this project groups by <code>client_id</code>: a client's pages never
+        appear in both train and test, since pages from one client share a site, a CMS, and an
+        editorial team that a model could partly learn to recognize instead of learning from
+        content signal.</p>
+      <h3>Leakage checks</h3>
+      <p>Three checks, not one. First, the harness was verified by deliberately reintroducing
+        <code>ctr</code> as a feature — the AUC jumped from 0.79 to 0.99, confirming the test would
+        actually catch a real leak. Second, the final feature set was checked against every banned
+        field with a programmatic assertion, not a manual scan. Third, the evaluation metric itself
+        was audited and a real bug was found: the engagement-corroboration check originally compared
+        against a raw tier median that was exactly 0.0 for two of three tiers (since over half of
+        those rows never register engagement at all), making the check almost never fire. It was
+        fixed by comparing against the median of rows that actually measured engagement — which
+        changed the results below materially, for the better.</p>
+    </div>
+  </section>
+
+  <section id="results">
+    <div class="wrap wide">
+      <h2>Results</h2>
+      <p>Same 824 held-out pages across 7 clients neither model nor rule ever saw during
+        fitting. Precision@K measures how many of the top-K ranked pages also show weak on-page
+        engagement — an independent signal from CTR, used as a corroboration check rather than a
+        ground-truth label, since none exists for this task.</p>
+
+      <div class="table-scroll">
+      <table>
+        <thead>
+          <tr><th>K</th><th class="num">Rule baseline</th><th class="num">Logistic regression</th><th class="num">Random forest</th><th class="num">Base rate</th></tr>
+        </thead>
+        <tbody>
+          <tr class="highlight"><td>20</td><td class="num">0.250</td><td class="num">0.000</td><td class="num">0.000</td><td class="num">0.176</td></tr>
+          <tr class="highlight"><td>50</td><td class="num">0.160</td><td class="num">0.020</td><td class="num">0.000</td><td class="num">0.176</td></tr>
+          <tr class="highlight"><td>100</td><td class="num">0.150</td><td class="num">0.010</td><td class="num">0.000</td><td class="num">0.176</td></tr>
+          <tr class="highlight"><td>200</td><td class="num">0.085</td><td class="num">0.010</td><td class="num">0.005</td><td class="num">0.176</td></tr>
+        </tbody>
+      </table>
+      </div>
+
+      <figure>
+        <img src="img/precision_at_k.png" alt="Bar chart comparing precision at K=20,50,100,200 for the rule baseline, logistic regression, and random forest, against a dashed base-rate line at 0.176. The rule baseline is above the base rate at every K; both models sit at or near zero throughout.">
+        <figcaption>The rule clears the base rate at every cutoff. Both models sit at or below it —
+          worse than ranking pages at random by this metric.</figcaption>
+      </figure>
+
+      <p>This isn't a broken model: the random forest reaches 0.84 AUC recovering the CTR-gap label
+        it was trained on. The mismatch is in what got optimized versus what got measured — both
+        models' most-confident picks turned out to be pages with exactly zero recorded engagement,
+        and the corroboration check is deliberately built to treat a zero as "not measured," not
+        "confirmed weak." A model chasing the training label finds that pattern efficiently; the
+        evaluation metric was built to distrust it.</p>
+
+      <figure>
+        <img src="img/reason_codes.png" alt="Horizontal bar chart of the six most common reason-code combinations in the final ranked queue and how many pages carry each.">
+        <figcaption>Most flagged pages combine two or three reasons — a well-ranked page not
+          converting clicks, often paired with enough volume that a small fix moves real numbers.</figcaption>
+      </figure>
+
+      <figure>
+        <img src="img/ctr_by_tier.png" alt="Bar chart of median click-through rate for the top_3, page_1, and striking position tiers.">
+        <figcaption>Median CTR by tier — the basis for judging every page against fair peers
+          rather than the whole pool. Position clearly matters, though not in the perfectly clean
+          top_3-beats-page_1 order a simple story would predict.</figcaption>
+      </figure>
+    </div>
+  </section>
+
+  <div class="wrap">
+  <div class="callout">
+    <h3>Turning the audit on the source material</h3>
+    <p>The same checks were run against two published findings in FlyRank's own March 2026 research
+      paper. A random forest said to predict a composite "health score" ranked that score's own
+      literal ingredients (position, impressions, scroll depth) as its top three predictors — an
+      analog rebuilt from this project's data showed the fit collapsing from R² 0.99 to 0.64 the
+      moment those ingredients were removed, meaning most of the reported "prediction" was the
+      formula reflecting back at itself. A second finding reported 71% holdout accuracy for a
+      growth/decline classifier with no base rate printed alongside it; replicated on an analog
+      here, skill above the base rate came out near zero either way the data was split. Rigor
+      applied to this project's own work has to apply to the source material too.</p>
+  </div>
+  </div>
+
+  <section id="limitations">
+    <div class="wrap">
+      <h2>Limitations</h2>
+      <ul class="limits">
+        <li><strong>Cross-sectional, not causal.</strong> One 90-day snapshot. Nothing here shows
+          that rewriting a title <em>causes</em> a CTR increase — only that some pages sit below
+          their tier's typical CTR right now.</li>
+        <li><strong>The evaluation proxy is not ground truth.</strong> Weak engagement correlates
+          with low CTR (roughly 0.3–0.5 by tier) but doesn't prove a page is broken — precision@K
+          against it measures corroboration, not accuracy against reality.</li>
+        <li><strong>One export, not the full warehouse.</strong> 30,000 rows across a handful of
+          clients; FlyRank's production data spans 341,701 pieces across 57 brands. This dataset
+          carries no industry or vertical field, so cross-vertical differences can't be checked.</li>
+        <li><strong>Selection by design.</strong> The eligible pool already filters to visible,
+          higher-traffic pages — anything thinner is invisible to this analysis on purpose.</li>
+        <li><strong>Anonymization limits.</strong> Pseudonymous IDs make it impossible to fully rule
+          out that a client cluster reflects one brand's editorial habits rather than generalizable
+          signal; the client-grouped split guards against overfitting to this but can't eliminate it.</li>
+      </ul>
+    </div>
+  </section>
+
+  <section id="recommendations">
+    <div class="wrap">
+      <h2>Ranked recommendations</h2>
+      <ol class="recs">
+        <li><strong>Ship the rule-based queue, not the model</strong> — it wins the honest
+          comparison above, and it's the version a content editor can read and argue with.</li>
+        <li><strong>Start with pages flagged as well-ranked but under-converting, at high volume</strong> —
+          impression volume means a small CTR fix moves a meaningful number of real clicks.</li>
+        <li><strong>Treat the engagement-corroboration flag as a bonus, not a gate</strong> — only
+          about one in six flagged pages carries it; the rest are still legitimate candidates.</li>
+        <li><strong>Never automate the rewrite itself, and never use this to judge a writer</strong> —
+          the queue says where to look, not what to write, and CTR reflects more than writing
+          quality.</li>
+        <li><strong>Re-check quarterly</strong> — tier medians, the corroboration flag's fire rate,
+          and the queue's content-type mix should all be watched for drift as new data lands.</li>
+      </ol>
+    </div>
+  </section>
+
+  <section id="reproducibility">
+    <div class="wrap">
+      <h2>Reproducibility</h2>
+      <p>Every number above comes from a notebook in the linked repository, runnable top to bottom.
+        A fixed seed (42) is used everywhere a split or a model is involved.</p>
+      <ul class="limits">
+        <li><a href="https://github.com/Siseko001/ML_FlyRank/blob/main/work/notebooks/w03_data_contract.ipynb">Data contract</a> — label and feature-bucket definitions</li>
+        <li><a href="https://github.com/Siseko001/ML_FlyRank/blob/main/work/notebooks/w03_feature_leakage_check.ipynb">Feature vector &amp; leakage check</a></li>
+        <li><a href="https://github.com/Siseko001/ML_FlyRank/blob/main/work/notebooks/w04_baseline_score.ipynb">Baseline rule &amp; top-20 review</a></li>
+        <li><a href="https://github.com/Siseko001/ML_FlyRank/blob/main/work/notebooks/w04_signal_audit.ipynb">Signal audit</a> — the engagement-median bug and fix</li>
+        <li><a href="https://github.com/Siseko001/ML_FlyRank/blob/main/work/notebooks/w05_model.ipynb">Model training &amp; comparison</a></li>
+        <li><a href="https://github.com/Siseko001/ML_FlyRank/blob/main/work/notebooks/w06_validation_audit.ipynb">Validation audit</a> — including the two research-paper findings above</li>
+        <li><a href="https://github.com/Siseko001/ML_FlyRank/blob/main/work/notebooks/w07_action_playbook.ipynb">Action playbook</a> — the deployable ranked queue</li>
+        <li><a href="https://github.com/Siseko001/ML_FlyRank/blob/main/work/notebooks/capstone.ipynb">Capstone notebook</a> — this paper, end to end</li>
+      </ul>
+    </div>
+  </section>
+
+  <footer>
+    <div class="wrap">
+      <p>Data credit: FlyRank, anonymized starter export, March 2026. Research audited in this
+        paper: <em>The State of AI-Driven SEO</em>, FlyRank, March 2026. Built as part of the
+        FlyRank AI Internship (Applied AI/ML track).</p>
+    </div>
+  </footer>
+
+</main>
+
+</body>
+</html>
